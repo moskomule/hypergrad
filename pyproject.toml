@@ -48,3 +48,11 @@ extra-dependencies = [
 ]
 [tool.hatch.envs.docs.scripts]
 build = "mkdocs build --clean --strict"
+
+[tool.hatch.build.targets.sdist]
+exclude = [
+    "/.github",
+    "/docs",
+    "/tests",
+    "/examples"
+]
