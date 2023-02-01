@@ -126,7 +126,7 @@ if __name__ == '__main__':
     import logging
     from rich.logging import RichHandler
 
-    logging.basicConfig(level=logging.INFO, handlers=[RichHandler()])
+    logging.basicConfig(level="NOTSET", format="%(message)s", datefmt="[%X]", handlers=[RichHandler()])
 
     p = argparse.ArgumentParser()
     p.add_argument('--gpu', type=int, default=0)
