@@ -47,4 +47,4 @@ extra-dependencies = [
     "mkdocs-material"
 ]
 [tool.hatch.envs.docs.scripts]
-build = "mkdocs gh-deploy --force"
+build = "mkdocs build --clean --strict"
