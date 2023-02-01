@@ -76,6 +76,10 @@ class Solver(BaseImplicitSolver):
 
 if __name__ == '__main__':
     import argparse
+    import logging
+    from rich.logging import RichHandler
+
+    logging.basicConfig(level=logging.INFO, handlers=[RichHandler()])
 
     p = argparse.ArgumentParser()
     p.add_argument('--gpu', type=int, default=0)
@@ -90,7 +94,8 @@ if __name__ == '__main__':
     args = p.parse_args()
 
     torch.random.manual_seed(args.seed)
-    torch.cuda.set_device(args.gpu)
+    if torch.cuda.is_available():
+        torch.cuda.set_device(args.gpu)
 
     train_data, val_data = generate_data(args.num_data, args.dim_data)
 

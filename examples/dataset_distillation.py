@@ -123,9 +123,10 @@ class DistilledData(nn.Module):
 
 if __name__ == '__main__':
     import argparse
-    from rich.traceback import install
+    import logging
+    from rich.logging import RichHandler
 
-    install(show_locals=True, width=150)
+    logging.basicConfig(level=logging.INFO, handlers=[RichHandler()])
 
     p = argparse.ArgumentParser()
     p.add_argument('--gpu', type=int, default=0)
@@ -139,7 +140,8 @@ if __name__ == '__main__':
     args = p.parse_args()
 
     torch.random.manual_seed(args.seed)
-    torch.cuda.set_device(args.gpu)
+    if torch.cuda.is_available():
+        torch.cuda.set_device(args.gpu)
 
     model = nn.Sequential(nn.Conv2d(1, 6, 5, padding=2),
                           nn.LeakyReLU(),

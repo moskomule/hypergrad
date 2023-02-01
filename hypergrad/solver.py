@@ -10,7 +10,7 @@ import torch
 from torch import Tensor, nn
 from torch.optim import Optimizer
 
-from utils import Params
+from hypergrad.utils import Params
 
 
 class Recorder(object):
@@ -67,7 +67,7 @@ class BaseSolver(object):
         if outer_patience_iters < 0:
             raise ValueError()
 
-        self.device = device or device or (torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu"))
+        self.device = device or (torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu"))
         self.inner = inner.to(self.device)
         self.outer = outer.to(self.device)
         self._inner_loader = inner_loader
@@ -104,12 +104,12 @@ class BaseSolver(object):
     def outer_step(self) -> int:
         return self._outer_step
 
-    def _log_stdout(self, results: dict[str, float]) -> None:
+    def stdout_results(self, results: dict[str, float]) -> None:
         out = f"[inner step {self.inner_step - 1:>{int(math.log10(self._num_iters))}}] "
         out += f"(outer step {self.outer_step:>{int(math.log10(self._num_iters // self._unroll_steps))}}) "
         for k, v in results.items():
             out += f"{k}={v:.4f} / "
-        self.logger.info(out)
+        self.logger.info(out[:-3])
 
     @property
     def inner_loader(self):
@@ -137,7 +137,7 @@ class BaseSolver(object):
                 self._outer_step += 1
 
             if i > 0 and i % self._log_freq == 0:
-                self._log_stdout(self.recorder.flush())
+                self.stdout_results(self.recorder.flush())
 
             self._global_step += 1
 
