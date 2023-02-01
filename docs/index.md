@@ -47,7 +47,7 @@ See [examples](../examples).
 
 ## Installation
 
-First, install `torch` and its accompanying `torchvision` [appropriately](pytorch.org). Then,
+First, install `torch` and its accompanying `torchvision` [appropriately](https://pytorch.org). Then,
 
 ```console
 pip install hypergrad
