@@ -1,4 +1,4 @@
-# [hypergrad](mosko.tokyo/hypergrad) ![pytest](https://github.com/moskomule/hypergrad/workflows/pytest/badge.svg)
+# [hypergrad](https://mosko.tokyo/hypergrad) ![pytest](https://github.com/moskomule/hypergrad/workflows/pytest/badge.svg)
 
 Simple and extensible hypergradient for PyTorch
 
