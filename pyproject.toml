@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "hypergrad"
-description = ''
+description = 'Simple and extensible hypergradient for PyTorch'
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
@@ -20,9 +20,9 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: CPython",
 ]
 dependencies = [
-    'torch',
-    'rich',
-    'torchvision'
+    "torch",
+    "torchvision",
+    "rich",
 ]
 dynamic = ["version"]
 
