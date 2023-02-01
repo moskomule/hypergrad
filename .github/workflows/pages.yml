@@ -10,9 +10,7 @@ on:
 
 # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
-  contents: read
   pages: write
-  id-token: write
 
 # Allow one concurrent deployment
 concurrency:
@@ -29,6 +27,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+
+      - uses: actions/cache@v3
+        with:
+          key: ${{ github.ref }}
+          path: .cache
 
       - name: setup python
         uses: actions/setup-python@v4

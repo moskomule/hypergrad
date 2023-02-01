@@ -1,16 +1,15 @@
 import copy
 import functools
-from collections.abc import Callable
 
 import functorch
 import torch
 from torch import Tensor, nn
 from torch.nn import functional as F
 
-from hypergrad.approximate_ihvp import conjugate_gradient, neumann, nystrom
+from hypergrad.approx_hypergrad import conjugate_gradient, neumann, nystrom
 from hypergrad.optimizers import diff_sgd
 from hypergrad.solver import BaseImplicitSolver
-from hypergrad.utils import Objective, Params
+from hypergrad.utils import Params
 
 
 # generate simple data
@@ -51,15 +50,11 @@ class Solver(BaseImplicitSolver):
         _, out_params = functorch.make_functional(self.outer, disable_autograd_tracking=True)
 
         self.recorder.add('outer_loss', self.outer_obj(in_params, out_params, out_input, out_target)[0].detach())
-        ihvp, out_out_g = self.approx_ihvp(lambda i, o: self.inner_obj(i, o, in_input, in_target)[0],
-                                           lambda i, o: self.outer_obj(i, o, out_input, out_target)[0],
-                                           in_params, out_params)
-        _, implicit_grads = functorch.jvp(
-            lambda i_p: functorch.grad(lambda i, o: self.inner_obj(i, o, in_input, in_target)[0],
-                                       argnums=(0, 1))(i_p, out_params)[1],
-            (in_params,), (ihvp,))
-        self.set_out_grad(out_out_g)
-        self.set_out_grad(tuple(-g for g in implicit_grads))
+        implicit_grads = self.approx_ihvp(lambda i, o: self.inner_obj(i, o, in_input, in_target)[0],
+                                          lambda i, o: self.outer_obj(i, o, out_input, out_target)[0],
+                                          in_params, out_params)
+
+        self.set_out_grad(implicit_grads)
         self.outer_optimizer.step()
         self.outer.zero_grad(set_to_none=True)
 
@@ -77,40 +72,6 @@ class Solver(BaseImplicitSolver):
         self.f_params[0].detach_()
         for p in self.outer.parameters():
             p.data.clamp_(min=1e-8)
-
-
-class CGSolver(Solver):
-
-    def approx_ihvp(self,
-                    inner_obj: Objective,
-                    outer_obj: Objective,
-                    in_params: Params,
-                    out_params: Params
-                    ) -> tuple[Params, Params]:
-        return conjugate_gradient(inner_obj, outer_obj, in_params, out_params, self.hyper_config['num_iters'],
-                                  self.hyper_config['lr'])
-
-
-class NeumannSolver(Solver):
-
-    def approx_ihvp(self,
-                    inner_obj: Objective,
-                    outer_obj: Objective,
-                    in_params: Params,
-                    out_params: Params
-                    ) -> tuple[Params, Params]:
-        return neumann(inner_obj, outer_obj, in_params, out_params, self.hyper_config['num_iters'],
-                       self.hyper_config['lr'])
-
-
-class NystromSolver(Solver):
-    def approx_ihvp(self,
-                    inner_obj: Callable,
-                    outer_obj: Callable,
-                    in_params: Params,
-                    out_params: Params
-                    ) -> tuple[Params, Params]:
-        return nystrom(inner_obj, outer_obj, in_params, out_params, self.hyper_config['rank'], self.hyper_config['rho'])
 
 
 if __name__ == '__main__':
@@ -145,7 +106,7 @@ if __name__ == '__main__':
         case 'neumann':
             approx_ihvp = functools.partial(neumann, num_iters=args.cost, lr=args.alpha)
         case 'cg':
-            approx_ihvp = functools.partial(neumann, num_iters=args.cost, lr=args.alpha)
+            approx_ihvp = functools.partial(conjugate_gradient, num_iters=args.cost, lr=args.alpha)
         case 'nystrom':
             approx_ihvp = functools.partial(nystrom, rank=args.cost, rho=args.alpha)
         case _:

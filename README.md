@@ -1,4 +1,4 @@
-# hypergrad ![pytest](https://github.com/moskomule/hypergrad/workflows/pytest/badge.svg)
+# [hypergrad](mosko.tokyo/hypergrad) ![pytest](https://github.com/moskomule/hypergrad/workflows/pytest/badge.svg)
 
 Simple and extensible hypergradient for PyTorch
 
@@ -7,7 +7,7 @@ Simple and extensible hypergradient for PyTorch
 
 ## Installation
 
-First, install PyTorch appropriately. Then,
+First, install `torch` and its accompanying `torchvision` appropriately. Then,
 
 ```console
 pip install hypergrad
@@ -24,6 +24,19 @@ pip install hypergrad
 Implementation of these methods can be found in `hypergrad/approximate_ihvp.py`
 
 ## Citation
+
+To cite this repository,
+
+```bibtex
+@software{hypergrad,
+    author = {Ryuichiro Hataya},
+    title = {{hypergrad}},
+    url = {https://github.com/moskomule/hypergrad},
+    year = {2023}
+}
+```
+
+`hypergrad` is developed as a part of the following research projects:
 
 ```bibtex
 @inproceedings{hataya2023nystrom,

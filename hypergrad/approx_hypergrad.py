@@ -1,11 +1,33 @@
-# functions to approximate inverse Hessian vector product
+# functions to approximate inverse Hessian vector product and returns hypergradient
+import functools
+from typing import Callable, ParamSpec
+
 import functorch
 import torch
 from torch import Tensor
 
 from hypergrad.utils import Objective, Params, foreach, hvp, vector_to_tree
 
+_P = ParamSpec('_P')
 
+
+def implicit_grad(f: Callable[_P, tuple[Params, Params]]) -> Callable[_P, Params]:
+    @functools.wraps(f)
+    def wrapper(*args: _P.args, **kwargs: _P.kwargs) -> Params:
+        inner_obj = kwargs.get('inner_obj') or args[0]
+        in_params = kwargs.get('in_params') or args[2]
+        out_params = kwargs.get('out_params') or args[3]
+        ihvp, out_out_g = f(*args, **kwargs)
+        _, implicit_grads = functorch.jvp(
+            lambda i_p: functorch.grad(lambda i, o: inner_obj(i, o),
+                                       argnums=(0, 1))(i_p, out_params)[1],
+            (in_params,), (ihvp,))
+        return foreach(out_out_g, implicit_grads, torch.sub)
+
+    return wrapper
+
+
+@implicit_grad
 def conjugate_gradient(inner_obj: Objective,
                        outer_obj: Objective,
                        in_params: Params,
@@ -23,7 +45,7 @@ def conjugate_gradient(inner_obj: Objective,
         num_iters: Number of iterations
         lr: step size
 
-    Returns: Derivatives of the outer objective w.r.t. inner and outer parameters
+    Returns: approximated implicit gradients
     """
 
     in_out_g, out_out_g = functorch.grad(outer_obj, argnums=(0, 1))(in_params, out_params)
@@ -45,6 +67,7 @@ def conjugate_gradient(inner_obj: Objective,
     return xs, out_out_g
 
 
+@implicit_grad
 def neumann(inner_obj: Objective,
             outer_obj: Objective,
             in_params: Params,
@@ -62,7 +85,7 @@ def neumann(inner_obj: Objective,
         num_iters: Number of iterations
         lr: step size
 
-    Returns: Derivatives of the outer objective w.r.t. inner and outer parameters
+    Returns: approximated implicit gradients
     """
 
     in_out_g, out_out_g = functorch.grad(outer_obj, argnums=(0, 1))(in_params, out_params)
@@ -78,6 +101,7 @@ def neumann(inner_obj: Objective,
     return ps, out_out_g
 
 
+@implicit_grad
 def nystrom(inner_obj: Objective,
             outer_obj: Objective,
             in_params: Params,
@@ -95,7 +119,7 @@ def nystrom(inner_obj: Objective,
         rank: Rank of low-rank approximation
         rho: additive constant to improve numerical stability
 
-    Returns: Derivatives of the outer objective w.r.t. inner and outer parameters
+    Returns: approximated implicit gradients
     """
 
     in_out_g, out_out_g = functorch.grad(outer_obj, argnums=(0, 1))(in_params, out_params)

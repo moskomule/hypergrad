@@ -78,7 +78,6 @@ class BaseSolver(object):
         self.inner_optimizer = inner_optimizer
         self.outer_optimizer = outer_optimizer
         self.logger = logger or logging.getLogger(self.__class__.__name__.lower())
-        self.hyper_config = hyper_config
         self._log_freq = log_freq
 
         self._functorch_requires_grad = functorch_requires_grad
@@ -204,7 +203,6 @@ class BaseImplicitSolver(BaseSolver):
                          device)
         self.outer.requires_grad_(False)
         self.approx_ihvp = approx_ihvp
-
 
     def set_out_grad(self,
                      grads: Params

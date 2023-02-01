@@ -8,7 +8,7 @@ from torch.utils.data import DataLoader, random_split
 from torchvision import transforms
 from torchvision.datasets import MNIST
 
-from hypergrad.approximate_ihvp import neumann, nystrom
+from hypergrad.approx_hypergrad import conjugate_gradient, neumann, nystrom
 from hypergrad.optimizers import diff_sgd
 from hypergrad.solver import BaseImplicitSolver
 from hypergrad.utils import Params
@@ -73,15 +73,10 @@ class Solver(BaseImplicitSolver):
         in_params = tuple(self.f_params)
         _, out_params = functorch.make_functional(self.outer, disable_autograd_tracking=True)
 
-        ihvp, out_out_g = self.approx_ihvp(lambda i, o: self.inner_obj(i, o, in_input, in_target)[0],
-                                           lambda i, o: self.outer_obj(i, o, out_input, out_target)[0],
-                                           in_params, out_params)
-        _, implicit_grads = functorch.jvp(
-            lambda i_p: functorch.grad(lambda i, o: self.inner_obj(i, o, in_input, in_target)[0],
-                                       argnums=(0, 1))(i_p, out_params)[1],
-            (in_params,), (ihvp,))
-        self.set_out_grad(out_out_g)
-        self.set_out_grad(tuple(-g for g in implicit_grads))
+        implicit_grads = self.approx_ihvp(lambda i, o: self.inner_obj(i, o, in_input, in_target)[0],
+                                          lambda i, o: self.outer_obj(i, o, out_input, out_target)[0],
+                                          in_params, out_params)
+        self.set_out_grad(implicit_grads)
         self.outer_optimizer.step()
         self.outer.zero_grad(set_to_none=True)
 
@@ -175,7 +170,7 @@ if __name__ == '__main__':
             approx_ihvp = functools.partial(neumann, num_iters=args.cost, lr=args.alpha)
 
         case 'cg':
-            approx_ihvp = functools.partial(neumann, num_iters=args.cost, lr=args.alpha)
+            approx_ihvp = functools.partial(conjugate_gradient, num_iters=args.cost, lr=args.alpha)
         case 'nystrom':
             approx_ihvp = functools.partial(nystrom, rank=args.cost, rho=args.alpha)
         case _:
