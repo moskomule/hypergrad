@@ -18,7 +18,7 @@ pip install hypergrad
 ### Implicit hypergradient approximation (via approximated inverse Hessian-vector product)
 
 * conjugate gradient
-* [Neumann-series approsimation](https://proceedings.mlr.press/v108/lorraine20a.html)
+* [Neumann-series approximation](https://proceedings.mlr.press/v108/lorraine20a.html)
 * [Nyström method](to_be_updated)
 
 Implementation of these methods can be found in `hypergrad/approximate_ihvp.py`
