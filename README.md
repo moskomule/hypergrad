@@ -5,13 +5,6 @@ Simple and extensible hypergradient for PyTorch
 <!-- [![PyPI - Version](https://img.shields.io/pypi/v/hypergrad.svg)](https://pypi.org/project/hypergrad)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/hypergrad.svg)](https://pypi.org/project/hypergrad) -->
 
------
-
-**Table of Contents**
-
-- [Installation](#installation)
-- [License](#license)
-
 ## Installation
 
 First, install PyTorch appropriately. Then,
