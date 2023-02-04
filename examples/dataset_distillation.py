@@ -76,7 +76,7 @@ class Solver(BaseImplicitSolver):
         implicit_grads = self.approx_ihvp(lambda i, o: self.inner_obj(i, o, in_input, in_target)[0],
                                           lambda i, o: self.outer_obj(i, o, out_input, out_target)[0],
                                           in_params, out_params)
-        self.outer_grad(implicit_grads)
+        self.outer_grad = implicit_grads
         self.outer_optimizer.step()
         self.outer.zero_grad(set_to_none=True)
 
