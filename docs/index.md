@@ -43,7 +43,7 @@ nystrom(f, g, theta, phi, rank=5, rho=0.1)
 
 The functions in `hypergrad.approx_hypergrad` return approximation of $\nabla_\phi g$.
 `hypergrad` also offers useful wrappers to make gradient-based hyperparameter optimization and meta-learning easier.
-See [examples](../examples).
+See [examples](https://github.com/moskomule/hypergrad/examples) for working examples.
 
 ## Installation
 
