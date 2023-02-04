@@ -26,9 +26,8 @@ def generate_data(num_data: int,
 class Solver(BaseImplicitSolver):
     def inner_update(self) -> None:
         input, target = next(self.inner_loader)
-        grads, (loss, output) = functorch.grad_and_value(self.inner_forward,
-                                                         has_aux=True)(self.inner_params,
-                                                                       tuple(self.outer.parameters()), input, target)
+        grads, loss = functorch.grad_and_value(lambda *args: self.inner_forward(*args).loss
+                                               )(self.inner_params, tuple(self.outer.parameters()), input, target)
         self.inner_params, self.inner_optim_state = self.inner_optimizer(list(self.inner_params), list(grads),
                                                                          self.inner_optim_state)
         self.recorder.add('inner_loss', loss.detach())

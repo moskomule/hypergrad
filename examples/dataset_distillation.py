@@ -95,10 +95,10 @@ class Solver(BaseImplicitSolver):
 
     def inner_update(self) -> None:
         target = self.target()
-        grads, (loss, output) = functorch.grad_and_value(self.inner_forward,
-                                                         has_aux=True)(self.inner_params,
-                                                                       tuple(self.outer.parameters()), None,
-                                                                       target)
+        grads, (loss, output) = functorch.grad_and_value(lambda *args: tuple(self.inner_forward(*args)), has_aux=True
+                                                         )(self.inner_params,
+                                                           tuple(self.outer.parameters()), None,
+                                                           target)
         self.inner_params, self.inner_optim_state = self.inner_optimizer(list(self.inner_params), list(grads),
                                                                          self.inner_optim_state)
         self.recorder.add('inner_loss', loss.detach())
