@@ -9,8 +9,11 @@ edit_uri: blob/main/docs
 theme:
   name: material
 
+  features:
+    - content.code.annotate
+
 markdown_extensions:
-   # mathjax
+  # mathjax
   - pymdownx.arithmatex:
       generic: true
 
@@ -26,3 +29,6 @@ extra_javascript:
   - https://polyfill.io/v3/polyfill.min.js?features=es6
   - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
 
+nav:
+  - Home: 'index.md'
+  - Solver: 'solver.md'

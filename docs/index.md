@@ -53,6 +53,9 @@ First, install `torch` and its accompanying `torchvision` [appropriately](https:
 pip install hypergrad
 ```
 
+`hypergrad` heavily relies on [`functorch`](https://pytorch.org/functorch), so if you are not familiar with it,
+please consider checking its document.
+
 ## Citation
 
 To cite this repository,
