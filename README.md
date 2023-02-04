@@ -1,9 +1,11 @@
-# [hypergrad](https://mosko.tokyo/hypergrad) ![pytest](https://github.com/moskomule/hypergrad/workflows/pytest/badge.svg)
+# hypergrad 
+
+![pytest](https://github.com/moskomule/hypergrad/workflows/pytest/badge.svg)
+[![PyPI - Version](https://img.shields.io/pypi/v/hypergrad.svg)](https://pypi.org/project/hypergrad)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/hypergrad.svg)](https://pypi.org/project/hypergrad)
+[![document](https://img.shields.io/static/v1?label=doc&message=hypergrad&color=blue)](https://moskomule.github.io/hypergrad)
 
 Simple and extensible hypergradient for PyTorch
-
-<!-- [![PyPI - Version](https://img.shields.io/pypi/v/hypergrad.svg)](https://pypi.org/project/hypergrad)
-[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/hypergrad.svg)](https://pypi.org/project/hypergrad) -->
 
 ## Installation
 
