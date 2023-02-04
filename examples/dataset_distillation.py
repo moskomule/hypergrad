@@ -99,7 +99,7 @@ class Solver(BaseImplicitSolver):
                                                          )(self.inner_params,
                                                            tuple(self.outer.parameters()), None,
                                                            target)
-        self.inner_params, self.inner_optim_state = self.inner_optimizer(list(self.inner_params), list(grads),
+        self.inner_params, self.inner_optim_state = self.inner_optimizer(self.inner_params, grads,
                                                                          self.inner_optim_state)
         self.recorder.add('inner_loss', loss.detach())
         self.recorder.add('inner_acc', accuracy(output, target))

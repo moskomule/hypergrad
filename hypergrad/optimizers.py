@@ -1,8 +1,4 @@
-from typing import TypeAlias
-
-import torch
-
-Params: TypeAlias = list[torch.Tensor]
+from hypergrad.utils import Params
 
 
 def diff_sgd(params: Params,
@@ -15,8 +11,12 @@ def diff_sgd(params: Params,
              nesterov: bool = False,
              ) -> tuple[Params, Params]:
     # differentiable SGD
+    params = list(params)
+    grads = list(grads)
     if state is None:
         state = [None for _ in params]
+    else:
+        state = list(state)
     for i, param in enumerate(params):
         grad = grads[i]
         if weight_decay != 0:
@@ -35,4 +35,4 @@ def diff_sgd(params: Params,
                 grad = state[i]
 
         params[i] = param.add(grad, alpha=-lr)
-    return params, state
+    return tuple(params), tuple(state)
