@@ -10,7 +10,7 @@ from torchvision.datasets import MNIST
 
 from hypergrad.approx_hypergrad import conjugate_gradient, neumann, nystrom
 from hypergrad.optimizers import diff_sgd
-from hypergrad.solver import BaseImplicitSolver
+from hypergrad.solver import BaseImplicitSolver, ForwardOutput
 from hypergrad.utils import Params
 
 
@@ -55,16 +55,16 @@ class Solver(BaseImplicitSolver):
     def target(self):
         return torch.arange(10, device=self.device).repeat(self.outer.num_per_class)
 
-    def inner_obj(self,
-                  in_params: Params,
-                  out_params: Params,
-                  input: torch.Tensor,
-                  target: torch.Tensor
-                  ) -> tuple[torch.Tensor, torch.Tensor]:
+    def inner_forward(self,
+                      in_params: Params,
+                      out_params: Params,
+                      input: torch.Tensor,
+                      target: torch.Tensor
+                      ) -> ForwardOutput:
         input, = out_params
         output = self.inner_func(in_params, input)
         loss = F.cross_entropy(output, target)
-        return loss, output
+        return ForwardOutput(loss, output)
 
     def outer_update(self) -> None:
         in_input, = tuple(self.outer.parameters())
@@ -73,29 +73,29 @@ class Solver(BaseImplicitSolver):
         in_params = tuple(self.inner_params)
         _, out_params = functorch.make_functional(self.outer, disable_autograd_tracking=True)
 
-        implicit_grads = self.approx_ihvp(lambda i, o: self.inner_obj(i, o, in_input, in_target)[0],
-                                          lambda i, o: self.outer_obj(i, o, out_input, out_target)[0],
+        implicit_grads = self.approx_ihvp(lambda i, o: self.inner_forward(i, o, in_input, in_target).loss,
+                                          lambda i, o: self.outer_forward(i, o, out_input, out_target).loss,
                                           in_params, out_params)
         self.outer_grad = implicit_grads
         self.outer_optimizer.step()
         self.outer.zero_grad(set_to_none=True)
 
-        loss, output = self.outer_obj(in_params, out_params, out_input, out_target)
+        loss, output = self.outer_forward(in_params, out_params, out_input, out_target)
         self.recorder.add('outer_loss', loss.detach())
         self.recorder.add('outer_acc', accuracy(output, out_target))
 
-    def outer_obj(self,
-                  in_params: Params,
-                  out_params: Params,
-                  input: torch.Tensor,
-                  target: torch.Tensor
-                  ) -> tuple[torch.Tensor, torch.Tensor]:
+    def outer_forward(self,
+                      in_params: Params,
+                      out_params: Params,
+                      input: torch.Tensor,
+                      target: torch.Tensor
+                      ) -> ForwardOutput:
         output = self.inner_func(in_params, input)
-        return F.cross_entropy(output, target), output
+        return ForwardOutput(F.cross_entropy(output, target), output)
 
     def inner_update(self) -> None:
         target = self.target()
-        grads, (loss, output) = functorch.grad_and_value(self.inner_obj,
+        grads, (loss, output) = functorch.grad_and_value(self.inner_forward,
                                                          has_aux=True)(self.inner_params,
                                                                        tuple(self.outer.parameters()), None,
                                                                        target)

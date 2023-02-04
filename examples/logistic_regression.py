@@ -8,7 +8,7 @@ from torch.nn import functional as F
 
 from hypergrad.approx_hypergrad import conjugate_gradient, neumann, nystrom
 from hypergrad.optimizers import diff_sgd
-from hypergrad.solver import BaseImplicitSolver
+from hypergrad.solver import BaseImplicitSolver, ForwardOutput
 from hypergrad.utils import Params
 
 
@@ -26,23 +26,23 @@ def generate_data(num_data: int,
 class Solver(BaseImplicitSolver):
     def inner_update(self) -> None:
         input, target = next(self.inner_loader)
-        grads, (loss, output) = functorch.grad_and_value(self.inner_obj,
+        grads, (loss, output) = functorch.grad_and_value(self.inner_forward,
                                                          has_aux=True)(self.inner_params,
                                                                        tuple(self.outer.parameters()), input, target)
         self.inner_params, self.inner_optim_state = self.inner_optimizer(list(self.inner_params), list(grads),
                                                                          self.inner_optim_state)
         self.recorder.add('inner_loss', loss.detach())
 
-    def inner_obj(self,
-                  in_params: Params,
-                  out_params: Params,
-                  input: Tensor,
-                  target: Tensor
-                  ) -> tuple[Tensor, Tensor]:
+    def inner_forward(self,
+                      in_params: Params,
+                      out_params: Params,
+                      input: Tensor,
+                      target: Tensor
+                      ) -> ForwardOutput:
         output = self.inner_func(in_params, input)
         loss = F.binary_cross_entropy_with_logits(output, target)
         wd = sum([(_in.pow(2) * _out).sum() for _in, _out in zip(in_params, out_params)])
-        return loss + wd / 2, output
+        return ForwardOutput(loss + wd / 2, output)
 
     def outer_update(self) -> None:
         in_input, in_target = next(self.inner_loader)
@@ -50,23 +50,23 @@ class Solver(BaseImplicitSolver):
         in_params = tuple(self.inner_params)
         _, out_params = functorch.make_functional(self.outer, disable_autograd_tracking=True)
 
-        self.recorder.add('outer_loss', self.outer_obj(in_params, out_params, out_input, out_target)[0].detach())
-        implicit_grads = self.approx_ihvp(lambda i, o: self.inner_obj(i, o, in_input, in_target)[0],
-                                          lambda i, o: self.outer_obj(i, o, out_input, out_target)[0],
+        self.recorder.add('outer_loss', self.outer_forward(in_params, out_params, out_input, out_target).loss.detach())
+        implicit_grads = self.approx_ihvp(lambda i, o: self.inner_forward(i, o, in_input, in_target).loss,
+                                          lambda i, o: self.outer_forward(i, o, out_input, out_target).loss,
                                           in_params, out_params)
 
         self.outer_grad = implicit_grads
         self.outer_optimizer.step()
         self.outer.zero_grad(set_to_none=True)
 
-    def outer_obj(self,
-                  in_params: Params,
-                  out_params: Params,
-                  input: Tensor,
-                  target: Tensor
-                  ) -> tuple[Tensor, Tensor]:
+    def outer_forward(self,
+                      in_params: Params,
+                      out_params: Params,
+                      input: Tensor,
+                      target: Tensor
+                      ) -> ForwardOutput:
         output = self.inner_func(in_params, input)
-        return F.binary_cross_entropy_with_logits(output, target), output
+        return ForwardOutput(F.binary_cross_entropy_with_logits(output, target), output)
 
     def post_outer_update(self) -> None:
         self.inner_params[0].zero_()

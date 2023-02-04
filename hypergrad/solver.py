@@ -1,6 +1,7 @@
 # Wrapper for bi-level optimization solver
 import abc
 import collections
+import dataclasses
 import logging
 import math
 import statistics
@@ -41,6 +42,17 @@ class Recorder(object):
     @property
     def archive(self):
         return self._archive.copy()
+
+
+@dataclasses.dataclass
+class ForwardOutput:
+    loss: Tensor
+    output: Tensor
+
+    def __iter__(self):
+        # intended to use as `dataclasses.astuple`, but
+        # it is 50 times faster than using dataclasses.astuple
+        return iter(self.__dict__.values())
 
 
 class BaseSolver(abc.ABC):
@@ -151,12 +163,12 @@ class BaseSolver(abc.ABC):
         self.inner_func, self.inner_params = functorch.make_functional(self.inner, not self._inner_requires_grad)
 
     @abc.abstractmethod
-    def inner_obj(self,
-                  in_params: Params,
-                  out_params: Params,
-                  input: Tensor,
-                  target: Tensor
-                  ) -> tuple[Tensor, Tensor]:
+    def inner_forward(self,
+                      in_params: Params,
+                      out_params: Params,
+                      input: Tensor,
+                      target: Tensor
+                      ) -> ForwardOutput:
         # returns loss, output
         ...
 
@@ -165,12 +177,12 @@ class BaseSolver(abc.ABC):
         ...
 
     @abc.abstractmethod
-    def outer_obj(self,
-                  in_params: Params,
-                  out_params: Params,
-                  input: Tensor,
-                  target: Tensor
-                  ) -> tuple[Tensor, Tensor]:
+    def outer_forward(self,
+                      in_params: Params,
+                      out_params: Params,
+                      input: Tensor,
+                      target: Tensor
+                      ) -> ForwardOutput:
         # returns loss, output
         ...
 
