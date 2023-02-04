@@ -27,9 +27,10 @@ class Solver(BaseImplicitSolver):
     def inner_update(self) -> None:
         input, target = next(self.inner_loader)
         grads, (loss, output) = functorch.grad_and_value(self.inner_obj,
-                                                         has_aux=True)(self.f_params,
+                                                         has_aux=True)(self.inner_params,
                                                                        tuple(self.outer.parameters()), input, target)
-        self.f_params, self.f_optim_state = self.inner_optimizer(list(self.f_params), list(grads), self.f_optim_state)
+        self.inner_params, self.inner_optim_state = self.inner_optimizer(list(self.inner_params), list(grads),
+                                                                         self.inner_optim_state)
         self.recorder.add('inner_loss', loss.detach())
 
     def inner_obj(self,
@@ -38,7 +39,7 @@ class Solver(BaseImplicitSolver):
                   input: Tensor,
                   target: Tensor
                   ) -> tuple[Tensor, Tensor]:
-        output = self.f_model(in_params, input)
+        output = self.inner_func(in_params, input)
         loss = F.binary_cross_entropy_with_logits(output, target)
         wd = sum([(_in.pow(2) * _out).sum() for _in, _out in zip(in_params, out_params)])
         return loss + wd / 2, output
@@ -46,7 +47,7 @@ class Solver(BaseImplicitSolver):
     def outer_update(self) -> None:
         in_input, in_target = next(self.inner_loader)
         out_input, out_target = next(self.outer_loader)
-        in_params = tuple(self.f_params)
+        in_params = tuple(self.inner_params)
         _, out_params = functorch.make_functional(self.outer, disable_autograd_tracking=True)
 
         self.recorder.add('outer_loss', self.outer_obj(in_params, out_params, out_input, out_target)[0].detach())
@@ -54,7 +55,7 @@ class Solver(BaseImplicitSolver):
                                           lambda i, o: self.outer_obj(i, o, out_input, out_target)[0],
                                           in_params, out_params)
 
-        self.set_out_grad(implicit_grads)
+        self.outer_grad(implicit_grads)
         self.outer_optimizer.step()
         self.outer.zero_grad(set_to_none=True)
 
@@ -64,12 +65,12 @@ class Solver(BaseImplicitSolver):
                   input: Tensor,
                   target: Tensor
                   ) -> tuple[Tensor, Tensor]:
-        output = self.f_model(in_params, input)
+        output = self.inner_func(in_params, input)
         return F.binary_cross_entropy_with_logits(output, target), output
 
     def post_outer_update(self) -> None:
-        self.f_params[0].zero_()
-        self.f_params[0].detach_()
+        self.inner_params[0].zero_()
+        self.inner_params[0].detach_()
         for p in self.outer.parameters():
             p.data.clamp_(min=1e-8)
 

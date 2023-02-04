@@ -6,7 +6,7 @@ import functorch
 import torch
 from torch import Tensor
 
-from hypergrad.utils import Objective, Params, foreach, hvp, vector_to_tree
+from hypergrad.utils import Objective, Params, foreach, hvp, vector_to_params
 
 _P = ParamSpec('_P')
 
@@ -139,5 +139,5 @@ def nystrom(inner_obj: Objective,
     v = torch.cat([v.view(-1) for v in in_out_g])
     x = 1 / rho * v - 1 / (rho ** 2) * c.t() @ torch.linalg.solve(m + 1 / rho * c @ c.t(), c @ v)
 
-    ihvp = vector_to_tree(x, in_out_g)
+    ihvp = vector_to_params(x, in_out_g)
     return ihvp, out_out_g

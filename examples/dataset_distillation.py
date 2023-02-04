@@ -32,16 +32,16 @@ def accuracy(input: torch.Tensor,
 
 
 @torch.no_grad()
-def test(f_model,
-         f_params,
+def test(inner_func,
+         inner_params,
          data_loader
          ) -> float:
-    device = f_params[0].device
+    device = inner_params[0].device
     correct = 0
     num_example = 0
     for input, target in data_loader:
         input, target = input.to(device), target.to(device)
-        output = f_model(f_params, input)
+        output = inner_func(inner_params, input)
         correct += accuracy(output, target, return_sum=True)
         num_example += output.size(0)
     return correct.item() / num_example
@@ -50,7 +50,7 @@ def test(f_model,
 class Solver(BaseImplicitSolver):
     def __init__(self, *args, **kwargs):
         self.val_loader = kwargs.pop('val_loader')
-        super().__init__(*args, **kwargs)
+        super().__init__(*args, skip_sync_inner=True, **kwargs)
 
     def target(self):
         return torch.arange(10, device=self.device).repeat(self.outer.num_per_class)
@@ -62,7 +62,7 @@ class Solver(BaseImplicitSolver):
                   target: torch.Tensor
                   ) -> tuple[torch.Tensor, torch.Tensor]:
         input, = out_params
-        output = self.f_model(in_params, input)
+        output = self.inner_func(in_params, input)
         loss = F.cross_entropy(output, target)
         return loss, output
 
@@ -70,13 +70,13 @@ class Solver(BaseImplicitSolver):
         in_input, = tuple(self.outer.parameters())
         in_target = self.target()
         out_input, out_target = next(self.outer_loader)
-        in_params = tuple(self.f_params)
+        in_params = tuple(self.inner_params)
         _, out_params = functorch.make_functional(self.outer, disable_autograd_tracking=True)
 
         implicit_grads = self.approx_ihvp(lambda i, o: self.inner_obj(i, o, in_input, in_target)[0],
                                           lambda i, o: self.outer_obj(i, o, out_input, out_target)[0],
                                           in_params, out_params)
-        self.set_out_grad(implicit_grads)
+        self.outer_grad(implicit_grads)
         self.outer_optimizer.step()
         self.outer.zero_grad(set_to_none=True)
 
@@ -90,25 +90,23 @@ class Solver(BaseImplicitSolver):
                   input: torch.Tensor,
                   target: torch.Tensor
                   ) -> tuple[torch.Tensor, torch.Tensor]:
-        output = self.f_model(in_params, input)
+        output = self.inner_func(in_params, input)
         return F.cross_entropy(output, target), output
 
     def inner_update(self) -> None:
         target = self.target()
         grads, (loss, output) = functorch.grad_and_value(self.inner_obj,
-                                                         has_aux=True)(self.f_params,
+                                                         has_aux=True)(self.inner_params,
                                                                        tuple(self.outer.parameters()), None,
                                                                        target)
-        self.f_params, self.f_optim_state = self.inner_optimizer(list(self.f_params), list(grads), self.f_optim_state)
+        self.inner_params, self.inner_optim_state = self.inner_optimizer(list(self.inner_params), list(grads),
+                                                                         self.inner_optim_state)
         self.recorder.add('inner_loss', loss.detach())
         self.recorder.add('inner_acc', accuracy(output, target))
 
     def post_outer_update(self) -> None:
-        self.recorder.add('val_acc', test(self.f_model, self.f_params, self.val_loader))
+        self.recorder.add('val_acc', test(self.inner_func, self.inner_params, self.val_loader))
         self.reset_inner_model()
-
-    def reset_inner_model(self) -> None:
-        self.f_model, self.f_params = functorch.make_functional(self.inner, self._functorch_requires_grad)
 
     def sync_inner(self) -> None:
         pass
@@ -183,4 +181,4 @@ if __name__ == '__main__':
                     outer_optimizer=torch.optim.Adam(hyper.parameters(), lr=1e-3, betas=(0.9, 0.999)),
                     val_loader=val_loader)
     solver.run()
-    test(solver.f_model, solver.f_params, test_loader)
+    test(solver.inner_func, solver.inner_params, test_loader)
