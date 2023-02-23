@@ -33,7 +33,7 @@ The essential challenge of such nested problems is that $\nabla_\phi g$ needs ba
 f(\theta, \phi; \mathcal{T})$.
 One way to address this is to use *approximated implicit differentiation* methods.
 `hypergrad` currently supports [conjugate gradient-based approximation](), [Neumann-series approximation](),
-and [Nyström method approximation]() like:
+and [Nyström method approximation](https://arxiv.org/abs/2302.09726) like:
 
 ```python
 from hypergrad.approx_hypergrad import nystrom

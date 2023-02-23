@@ -21,7 +21,7 @@ pip install hypergrad
 
 * conjugate gradient
 * [Neumann-series approximation](https://proceedings.mlr.press/v108/lorraine20a.html)
-* [Nyström method](to_be_updated)
+* [Nyström method](https://arxiv.org/abs/2302.09726)
 
 Implementation of these methods can be found in `hypergrad/approximate_ihvp.py`
 
@@ -45,6 +45,6 @@ To cite this repository,
     author = {Ryuichiro Hataya and Makoto Yamada},
     title = {{Nystr\"om Method for Accurate and Scalable Implicit Differentiation}},
     booktitle = {AISTATS},
-    year = {2023}
+    year = {2023},
 }
 ```
